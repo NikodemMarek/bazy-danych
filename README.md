@@ -15,8 +15,8 @@ docker compose up
 
 `127.0.0.1:8080`
 
-system: `PostgreSQL`
-server: `db`
-username: `postgres`
-password: `postgres`
+system: `PostgreSQL`  
+server: `db`  
+username: `postgres`  
+password: `postgres`  
 database: `stockmarket`
