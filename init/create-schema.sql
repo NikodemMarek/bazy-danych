@@ -71,7 +71,9 @@ CREATE TABLE IF NOT EXISTS portfolio(
 
     CONSTRAINT fk_portfolio_instrument
         FOREIGN KEY(iid)
-        REFERENCES instrument(id)
+        REFERENCES instrument(id),
+
+    CONSTRAINT ux_portfolio_wid_iid UNIQUE (wid, iid)
 );
 
 CREATE TABLE IF NOT EXISTS "order"(
@@ -82,7 +84,7 @@ CREATE TABLE IF NOT EXISTS "order"(
     limit_price decimal(15, 2),
     status o_status NOT NULL DEFAULT 'open',
     created_at timestamp WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    closed_at timestamp WITH TIME ZONE,
+    closed_at timestamp WITH TIME ZONE DEFAULT NULL,
 
     CONSTRAINT fk_order_wallet
         FOREIGN KEY(wid)

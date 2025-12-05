@@ -52,51 +52,31 @@ INSERT INTO portfolio (wid, iid, quantity) VALUES
 (7, 9, 10.0),    -- Portfel 7 (USD) posiada 10 szt. instrumentu 9 (Złoto)
 (9, 1, 75.0);    -- Portfel 9 (PLN) posiada 75 szt. instrumentu 1 (CDR)
 
-INSERT INTO "order" (wid, iid, quantity, limit_price, status, closed_at) VALUES
-(1, 1, 10.0, 110.00, 'filled', CURRENT_TIMESTAMP), -- Kupno 10 CDR @ 110 (zrealizowane)
-(2, 3, 5.0, 180.00, 'open', NULL), -- Chęć kupna 5 AAPL @ 180 (otwarte)
-(3, 7, 0.1, 59000.00, 'open', NULL), -- Chęć kupna 0.1 BTC @ 59k (otwarte)
-(4, 8, 2.0, 3100.00, 'cancelled', CURRENT_TIMESTAMP), -- Anulowane zlecenie na 2 ETH
-(1, 2, -50.0, 58.00, 'filled', CURRENT_TIMESTAMP), -- Sprzedaż 50 PKO @ 58 (zrealizowane)
-(6, 6, 10.0, 490.00, 'open', NULL), -- Chęć kupna 10 SPY500 @ 490 (otwarte)
-(7, 9, -5.0, 2010.00, 'open', NULL), -- Chęć sprzedaży 5 Złota @ 2010 (otwarte)
-(9, 1, 20.0, 115.00, 'filled', CURRENT_TIMESTAMP), -- Kupno 20 CDR @ 115 (zrealizowane)
-(10, 7, 0.2, 61000.00, 'filled', CURRENT_TIMESTAMP), -- Kupno 0.2 BTC @ 61k (zrealizowane)
-(2, 4, 10.0, 400.00, 'cancelled', CURRENT_TIMESTAMP); -- Anulowane zlecenie na 10 TSLA
 
--- Transakcja dla zlecenia 1 (Kupno 10 CDR)
-INSERT INTO "transaction" (oid, wid, iid, quantity, price, fee) VALUES
-(1, 1, 1, 10.0, 110.00, 0.50);
-
--- Transakcja dla zlecenia 5 (Sprzedaż 50 PKO)
-INSERT INTO "transaction" (oid, wid, iid, quantity, price, fee) VALUES
-(5, 1, 2, -50.0, 58.00, 1.20);
-
--- Transakcja dla zlecenia 8 (Kupno 20 CDR)
-INSERT INTO "transaction" (oid, wid, iid, quantity, price, fee) VALUES
-(8, 9, 1, 20.0, 115.00, 0.80);
-
--- Transakcja dla zlecenia 9 (Kupno 0.2 BTC)
-INSERT INTO "transaction" (oid, wid, iid, quantity, price, fee) VALUES
-(9, 10, 7, 0.2, 61000.00, 15.00);
-
--- (Dodaję 6 "sztucznych" wpisów, aby dobić do 10 - w realnym systemie mogłyby to być częściowe wypełnienia zleceń)
-INSERT INTO "transaction" (oid, wid, iid, quantity, price, fee) VALUES
-(1, 1, 1, 5.0, 109.50, 0.25), -- (Np. drugie wypełnienie zlecenia 1)
-(5, 1, 2, -20.0, 58.10, 0.40), -- (Częściowe wypełnienie zlecenia 5)
-(5, 1, 2, -30.0, 58.15, 0.60), -- (Dokończenie wypełnienia zlecenia 5)
-(8, 9, 1, 10.0, 114.80, 0.40), -- (Część zlecenia 8)
-(8, 9, 1, 10.0, 114.90, 0.40), -- (Druga część zlecenia 8)
-(9, 10, 7, 0.1, 61050.00, 7.50); -- (Połowa zlecenia 9)
-
-INSERT INTO price_history (iid, "timestamp", interval, open, high, low, "close", volume) VALUES
-(1, '2025-11-15 09:00:00+01', '1h', 110.00, 111.00, 109.50, 110.50, 10000),
-(1, '2025-11-15 10:00:00+01', '1h', 110.50, 112.00, 110.00, 111.80, 12000),
-(2, '2025-11-15 09:00:00+01', '1h', 58.00, 58.50, 57.90, 58.20, 50000),
-(3, '2025-11-14 00:00:00+01', '1d', 175.00, 176.00, 174.50, 175.80, 1000000),
-(7, '2025-11-15 12:00:00+01', '1m', 60000.00, 60010.00, 59990.00, 60005.00, 50.5),
-(7, '2025-11-15 12:01:00+01', '1m', 60005.00, 60020.00, 60000.00, 60015.00, 40.2),
-(9, '2025-11-15 00:00:00+01', '1d', 2000.00, 2010.00, 1990.00, 2005.00, 8000),
-(1, '2025-11-14 00:00:00+01', '1d', 108.00, 110.00, 107.50, 110.00, 150000),
-(2, '2025-11-14 00:00:00+01', '1d', 57.00, 58.00, 57.00, 58.00, 600000),
-(4, '2025-11-14 00:00:00+01', '1d', 400.00, 410.00, 399.00, 410.20, 900000);
+-- execute to test automatic order fufillment:
+-- sell 10 CDR @ 110
+-- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (1, 1, -10.0, 110.00);
+-- buy 5 CDR @ 110
+-- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (2, 1, 5.0, 110.00);
+-- buy 8 CDR @ 110
+-- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (2, 1, 8.0, 110.00);
+-- sell 2 CDR @ 110
+-- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (1, 1, -2.0, 110.00);
+-- sell 2 CDR @ 110
+-- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (1, 1, -2.0, 110.00);
+-- buy 1 CDR @ 110
+-- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (2, 1, 1.0, 110.00);
+-- should result in:
+--  id | wid | iid |   quantity   | limit_price | status |          created_at           | closed_at
+-- ----+-----+-----+--------------+-------------+--------+-------------------------------+-----------
+--   1 |   1 |   1 | -10.00000000 |      110.00 | filled | 2025-12-01 12:00:00.000000+00 |
+--   2 |   2 |   1 |   5.00000000 |      110.00 | filled | 2025-12-01 12:00:00.100000+00 |
+--   3 |   1 |   1 |  -5.00000000 |      110.00 | filled | 2025-12-01 12:00:00.200000+00 |
+--   4 |   2 |   1 |   8.00000000 |      110.00 | filled | 2025-12-01 12:00:00.300000+00  |
+--   5 |   2 |   1 |   3.00000000 |      110.00 | filled | 2025-12-01 12:00:00.400000+00  |
+--   6 |   1 |   1 |  -2.00000000 |      110.00 | filled | 2025-12-01 12:00:00.500000+00 |
+--   7 |   2 |   1 |   1.00000000 |      110.00 | filled | 2025-12-01 12:00:00.600000+00 |
+--   8 |   1 |   1 |  -2.00000000 |      110.00 | filled | 2025-12-01 12:00:00.700000+00 |
+--   9 |   1 |   1 |  -1.00000000 |      110.00 | filled | 2025-12-01 12:00:00.800000+00 |
+--  10 |   2 |   1 |   1.00000000 |      110.00 | filled | 2025-12-01 12:00:00.900000+00 |
+-- (10 rows)
