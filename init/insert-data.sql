@@ -54,17 +54,11 @@ INSERT INTO portfolio (wid, iid, quantity) VALUES
 
 
 -- execute to test automatic order fufillment:
--- sell 10 CDR @ 110
 -- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (1, 1, -10.0, 110.00);
--- buy 5 CDR @ 110
 -- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (2, 1, 5.0, 110.00);
--- buy 8 CDR @ 110
 -- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (2, 1, 8.0, 110.00);
--- sell 2 CDR @ 110
 -- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (1, 1, -2.0, 110.00);
--- sell 2 CDR @ 110
 -- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (1, 1, -2.0, 110.00);
--- buy 1 CDR @ 110
 -- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (2, 1, 1.0, 110.00);
 -- should result in:
 --  id | wid | iid |   quantity   | limit_price | status |          created_at           | closed_at

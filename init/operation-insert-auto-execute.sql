@@ -28,6 +28,8 @@ CREATE OR REPLACE FUNCTION execute_trade(
 )
 RETURNS DECIMAL AS $$
 DECLARE
+    v_fee_percentage DECIMAL := 0.01;
+
     transaction_quantity DECIMAL;
     buyer_wid INT;
     seller_wid INT;
@@ -55,18 +57,21 @@ BEGIN
 
     IF matched_order_remaining_qty > 0 OR new_order_remaining_qty > 0 THEN
         IF matched_order_remaining_qty > 0 THEN
-            INSERT INTO "order" (wid, iid, quantity, limit_price)
-            VALUES (p_matched_order.wid, p_matched_order.iid, matched_order_remaining_qty * sign(p_matched_order.quantity), p_matched_order.limit_price);
+            INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES
+            (p_matched_order.wid, p_matched_order.iid, matched_order_remaining_qty * sign(p_matched_order.quantity), p_matched_order.limit_price);
         ELSE
-            INSERT INTO "order" (wid, iid, quantity, limit_price)
-            VALUES (p_new_order.wid, p_new_order.iid, new_order_remaining_qty * sign(p_new_order.quantity), p_new_order.limit_price);
+            INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES
+            (p_new_order.wid, p_new_order.iid, new_order_remaining_qty * sign(p_new_order.quantity), p_new_order.limit_price);
         END IF;
     END IF;
+
+    INSERT INTO "transaction" (oid, wid, iid, quantity, price, fee) VALUES
+    (buyer_oid, buyer_oid, p_matched_order.iid, transaction_quantity, p_matched_order.limit_price, transaction_quantity * p_matched_order.limit_price * v_fee_percentage),
+    (seller_oid, seller_oid, p_new_order.iid, -transaction_quantity, p_new_order.limit_price, transaction_quantity * p_new_order.limit_price * v_fee_percentage);
 
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
-
 
 CREATE OR REPLACE FUNCTION process_order_matching()
 RETURNS TRIGGER AS $$
