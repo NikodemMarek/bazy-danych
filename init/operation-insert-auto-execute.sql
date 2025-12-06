@@ -95,3 +95,28 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_process_order_matching_after_insert
 AFTER INSERT ON "order"
 FOR EACH ROW EXECUTE FUNCTION process_order_matching();
+
+CREATE OR REPLACE FUNCTION process_transaction() RETURNS TRIGGER AS $$
+DECLARE
+    v_total_cost decimal;
+BEGIN
+    IF NEW.t_type = 'buy' THEN
+        v_total_cost := (NEW.price * NEW.quantity) + NEW.fee;
+
+        UPDATE wallet SET balance = balance - v_total_cost WHERE id = NEW.wid;
+        INSERT INTO portfolio (wid, iid, quantity)
+        VALUES (NEW.wid, NEW.iid, NEW.quantity)
+
+        ON CONFLICT (wid, iid) DO UPDATE SET quantity = portfolio.quantity + NEW.quantity;
+
+    ELSIF NEW.t_type = 'sell' THEN
+        UPDATE wallet SET balance = balance + (NEW.price * NEW.quantity) - NEW.fee WHERE id = NEW.wid;
+
+        UPDATE portfolio SET quantity = quantity - NEW.quantity WHERE wid = NEW.wid AND iid = NEW.iid;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER t_process_transaction AFTER INSERT ON "transaction" FOR EACH ROW EXECUTE FUNCTION process_transaction();
