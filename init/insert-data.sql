@@ -1,14 +1,14 @@
 INSERT INTO "user" (name, surname, bank_account, email, password_hash, status) VALUES
-('Jan', 'Kowalski', 'PL123456789012345678901234', 'jan.kowalski@email.com', 'hash123_abc', 'active'),
-('Anna', 'Nowak', 'PL234567890123456789012345', 'anna.nowak@email.com', 'hash456_def', 'active'),
-('Piotr', 'Wiśniewski', 'PL345678901234567890123456', 'piotr.w@email.com', 'hash789_ghi', 'active'),
-('Maria', 'Wójcik', 'PL456789012345678901234567', 'maria.wojcik@email.com', 'hash101_jkl', 'suspended'),
-('Krzysztof', 'Kowalczyk', 'PL567890123456789012345678', 'krzys.k@email.com', 'hash112_mno', 'active'),
-('Ewa', 'Kamińska', 'PL678901234567890123456789', 'ewa.kam@email.com', 'hash131_pqr', 'closed'),
-('Tomasz', 'Zieliński', 'PL789012345678901234567890', 'tomasz.ziel@email.com', 'hash141_stu', 'active'),
-('Barbara', 'Szymańska', 'PL890123456789012345678901', 'basia.sz@email.com', 'hash151_vwx', 'active'),
-('Marek', 'Dąbrowski', 'PL901234567890123456789012', 'marek.d@email.com', 'hash161_yza', 'active'),
-('Zofia', 'Lewandowska', 'PL012345678901234567890123', 'zofia.l@email.com', 'hash171_bcd', 'active');
+('Jan', 'Kowalski', 'PL123456789012345678901234', 'jan.kowalski@email.com', crypt('hash123_abc', gen_salt('bf')), 'active'),
+('Anna', 'Nowak', 'PL234567890123456789012345', 'anna.nowak@email.com', crypt('hash456_def', gen_salt('bf')), 'active'),
+('Piotr', 'Wiśniewski', 'PL345678901234567890123456', 'piotr.w@email.com', crypt('hash789_ghi', gen_salt('bf')), 'active'),
+('Maria', 'Wójcik', 'PL456789012345678901234567', 'maria.wojcik@email.com', crypt('hash101_jkl', gen_salt('bf')), 'suspended'),
+('Krzysztof', 'Kowalczyk', 'PL567890123456789012345678', 'krzys.k@email.com', crypt('hash112_mno', gen_salt('bf')), 'active'),
+('Ewa', 'Kamińska', 'PL678901234567890123456789', 'ewa.kam@email.com', crypt('hash131_pqr',gen_salt('bf')), 'closed'),
+('Tomasz', 'Zieliński', 'PL789012345678901234567890', 'tomasz.ziel@email.com', crypt('hash141_stu', gen_salt('bf')), 'active'),
+('Barbara', 'Szymańska', 'PL890123456789012345678901', 'basia.sz@email.com', crypt('hash151_vwx', gen_salt('bf')), 'active'),
+('Marek', 'Dąbrowski', 'PL901234567890123456789012', 'marek.d@email.com', crypt('hash161_yza', gen_salt('bf')), 'active'),
+('Zofia', 'Lewandowska', 'PL012345678901234567890123', 'zofia.l@email.com', crypt('hash171_bcd', gen_salt('bf')), 'active');
 
 INSERT INTO instrument_type (name) VALUES
 ('akcja'),
@@ -74,3 +74,45 @@ INSERT INTO portfolio (wid, iid, quantity) VALUES
 --   9 |   1 |   1 |  -1.00000000 |      110.00 | filled | 2025-12-01 12:00:00.800000+00 |
 --  10 |   2 |   1 |   1.00000000 |      110.00 | filled | 2025-12-01 12:00:00.900000+00 |
 -- (10 rows)
+
+INSERT INTO "order" (wid, iid, t_type, quantity, limit_price, status, created_at, closed_at) VALUES
+-- ZREALIZOWANE (To one zbudowały obecne portfolio)
+(1, 1, 'buy', 50.0, 105.00, 'filled', NOW() - INTERVAL '11 days', NOW() - INTERVAL '10 days'), -- Kupił CDR (PLN)
+(1, 2, 'buy', 100.0, 55.50, 'filled', NOW() - INTERVAL '6 days', NOW() - INTERVAL '5 days'),   -- Kupił PKO (PLN)
+(2, 3, 'buy', 10.0, 170.00, 'filled', NOW() - INTERVAL '21 days', NOW() - INTERVAL '20 days'), -- Kupił AAPL (USD)
+(4, 7, 'buy', 0.5, 15000.00, 'filled', NOW() - INTERVAL '3 days', NOW() - INTERVAL '2 days'),  -- Kupił BTC (USD)
+
+-- OTWARTE (Wiszące na giełdzie - widoczne w arkuszu zleceń)
+(1, 1, 'buy', 10.0, 100.00, 'open', NOW() - INTERVAL '1 hour', NULL),    -- Chce dokupić CDR taniej (Limit 100)
+(2, 4, 'sell', 5.0, 180.00, 'open', NOW() - INTERVAL '3 hours', NULL),    -- Chce sprzedać TSLA drożej (Limit 180)
+(3, 8, 'buy', 2.0, 2900.00, 'open', NOW() - INTERVAL '12 hours', NULL),  -- Chce kupić ETH (USD)
+(5, 5, 'buy', 50.0, 44.00, 'open', NOW() - INTERVAL '1 day', NULL),      -- Chce kupić ETFW20 (PLN)
+
+-- ANULOWANE (Historia niedoszłych transakcji)
+(9, 1, 'buy', 100.0, 90.00, 'cancelled', NOW() - INTERVAL '1 month', NOW() - INTERVAL '29 days'); -- Chciał kupić CDR bardzo tanio, ale zrezygnował
+
+INSERT INTO "transaction" (oid, wid, iid, t_type, quantity, price, fee, made_at) VALUES
+(5, 1, 1, 'buy', 50.0, 105.00, 2.50, NOW() - INTERVAL '10 days'),  -- Kupno CDR
+(6, 1, 2, 'buy', 100.0, 55.50, 3.00, NOW() - INTERVAL '5 days'),   -- Kupno PKO
+(7, 2, 3, 'buy', 10.0, 170.00, 1.50, NOW() - INTERVAL '20 days'),  -- Kupno AAPL
+(8, 4, 7, 'buy', 0.5, 15000.00, 10.00, NOW() - INTERVAL '2 days'); -- Kupno BTC
+
+INSERT INTO price_history (iid, timestamp, interval, open, high, low, close, volume) VALUES
+-- === CD PROJEKT (CDR) - Interwał 1 dzień (1d) ===
+(1, NOW() - INTERVAL '5 days', '1d', 105.00, 107.50, 104.00, 106.00, 15000),
+(1, NOW() - INTERVAL '4 days', '1d', 106.00, 109.00, 105.50, 108.50, 22000),
+(1, NOW() - INTERVAL '3 days', '1d', 108.50, 110.00, 108.00, 109.50, 18500),
+(1, NOW() - INTERVAL '2 days', '1d', 109.50, 111.00, 109.00, 110.00, 12000),
+(1, NOW() - INTERVAL '1 day', '1d', 110.00, 112.00, 109.50, 110.50, 16000),
+
+-- === BITCOIN (BTC) - Interwał 1 godzina (1h) - Ostatnie 5 godzin ===
+(7, NOW() - INTERVAL '5 hours', '1h', 59500.00, 59800.00, 59400.00, 59700.00, 120.5),
+(7, NOW() - INTERVAL '4 hours', '1h', 59700.00, 60100.00, 59600.00, 60000.00, 145.2),
+(7, NOW() - INTERVAL '3 hours', '1h', 60000.00, 60200.00, 59900.00, 60100.00, 98.0),
+(7, NOW() - INTERVAL '2 hours', '1h', 60100.00, 60150.00, 59800.00, 59900.00, 110.1),
+(7, NOW() - INTERVAL '1 hour', '1h', 59900.00, 60050.00, 59850.00, 60000.00, 85.5),
+
+-- === APPLE (AAPL) - Interwał 1 tydzień (1w) ===
+(3, NOW() - INTERVAL '3 weeks', '1w', 165.00, 170.00, 164.00, 168.00, 500000),
+(3, NOW() - INTERVAL '2 weeks', '1w', 168.00, 172.00, 167.00, 171.00, 600000),
+(3, NOW() - INTERVAL '1 weeks', '1w', 171.00, 176.00, 170.00, 175.80, 550000);

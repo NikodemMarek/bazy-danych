@@ -18,15 +18,22 @@ CREATE TYPE ph_interval AS ENUM(
     '1M'
 );
 
+CREATE TYPE transaction_type AS ENUM(
+    'buy',
+    'sell'
+);
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS "user"(
     id SERIAL PRIMARY KEY,
     name varchar(50) NOT NULL,
     surname varchar(50) NOT NULL,
-    bank_account varchar(34),
-    email varchar(255) NOT NULL,
+    bank_account varchar(34) UNIQUE,
+    email varchar(255) NOT NULL UNIQUE,
     password_hash varchar(255) NOT NULL,
     created_at timestamp WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    status u_status DEFAULT 'active'
+    status u_status NOT NULL DEFAULT 'active'
 );
 
 CREATE TABLE IF NOT EXISTS wallet(
@@ -38,7 +45,9 @@ CREATE TABLE IF NOT EXISTS wallet(
 
     CONSTRAINT fk_wallet_user
         FOREIGN KEY(uid)
-        REFERENCES "user"(id)
+        REFERENCES "user"(id),
+    
+    CONSTRAINT check_balance_positive CHECK (balance >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS instrument_type(
@@ -56,7 +65,11 @@ CREATE TABLE IF NOT EXISTS instrument(
 
     CONSTRAINT fk_ins_type
         FOREIGN KEY(itid)
-        REFERENCES instrument_type(id)
+        REFERENCES instrument_type(id),
+    
+    CONSTRAINT ux_ticker_country UNIQUE (ticker, country, itid),
+
+    CONSTRAINT check_prices_positive CHECK (ask_price > 0 AND bid_price > 0)
 );
 
 CREATE TABLE IF NOT EXISTS portfolio(
@@ -73,7 +86,9 @@ CREATE TABLE IF NOT EXISTS portfolio(
         FOREIGN KEY(iid)
         REFERENCES instrument(id),
 
-    CONSTRAINT ux_portfolio_wid_iid UNIQUE (wid, iid)
+    CONSTRAINT ux_portfolio_wid_iid UNIQUE (wid, iid),
+
+    CONSTRAINT check_quantity_positive CHECK (quantity >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS "order"(
@@ -83,6 +98,7 @@ CREATE TABLE IF NOT EXISTS "order"(
     quantity decimal(18, 8) NOT NULL,
     limit_price decimal(15, 2),
     status o_status NOT NULL DEFAULT 'open',
+    t_type transaction_type NOT NULL,
     created_at timestamp WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     closed_at timestamp WITH TIME ZONE DEFAULT NULL,
 
@@ -92,7 +108,9 @@ CREATE TABLE IF NOT EXISTS "order"(
 
     CONSTRAINT fk_order_instrument
         FOREIGN KEY(iid)
-        REFERENCES instrument(id)
+        REFERENCES instrument(id),
+
+    CONSTRAINT check_order_dates CHECK (closed_at >= created_at)
 );
 
 CREATE TABLE IF NOT EXISTS "transaction"(
@@ -100,6 +118,7 @@ CREATE TABLE IF NOT EXISTS "transaction"(
     oid int NOT NULL,
     wid int NOT NULL,
     iid int NOT NULL,
+    t_type transaction_type NOT NULL,
     quantity decimal(18, 8) NOT NULL,
     price decimal(15, 2) NOT NULL,
     fee decimal(15, 2) NOT NULL,
