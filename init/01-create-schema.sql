@@ -18,7 +18,7 @@ CREATE TYPE ph_interval AS ENUM(
     '1M'
 );
 
-CREATE TYPE transaction_type AS ENUM(
+CREATE TYPE transaction_side AS ENUM(
     'buy',
     'sell'
 );
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS "order"(
     quantity decimal(18, 8) NOT NULL,
     limit_price decimal(15, 2),
     status o_status NOT NULL DEFAULT 'open',
-    t_type transaction_type NOT NULL,
+    side transaction_side NOT NULL,
     created_at timestamp WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     closed_at timestamp WITH TIME ZONE DEFAULT NULL,
 
@@ -110,7 +110,8 @@ CREATE TABLE IF NOT EXISTS "order"(
         FOREIGN KEY(iid)
         REFERENCES instrument(id),
 
-    CONSTRAINT check_order_dates CHECK (closed_at >= created_at)
+    CONSTRAINT check_order_dates CHECK (closed_at >= created_at),
+    CONSTRAINT check_quantity_positive CHECK (quantity > 0)
 );
 
 CREATE TABLE IF NOT EXISTS "transaction"(
@@ -118,7 +119,7 @@ CREATE TABLE IF NOT EXISTS "transaction"(
     oid int NOT NULL,
     wid int NOT NULL,
     iid int NOT NULL,
-    t_type transaction_type NOT NULL,
+    side transaction_side NOT NULL,
     quantity decimal(18, 8) NOT NULL,
     price decimal(15, 2) NOT NULL,
     fee decimal(15, 2) NOT NULL,
@@ -134,7 +135,11 @@ CREATE TABLE IF NOT EXISTS "transaction"(
 
     CONSTRAINT fk_transaction_instrument
         FOREIGN KEY(iid)
-        REFERENCES instrument(id)
+        REFERENCES instrument(id),
+
+    CONSTRAINT check_quantity_positive CHECK (quantity > 0),
+    CONSTRAINT check_price_positive CHECK (price > 0),
+    CONSTRAINT check_fee_nonnegative CHECK (fee >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS price_history(

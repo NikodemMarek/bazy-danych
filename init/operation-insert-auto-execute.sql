@@ -1,22 +1,34 @@
 CREATE OR REPLACE FUNCTION order_id_with_the_same_price(
     p_iid INT,
     p_limit_price DECIMAL(15, 2),
-    p_quantity_sign NUMERIC,
+    p_order_side transaction_side,
     p_exclude_wid INT
 )
 RETURNS INT AS $$
 DECLARE
     matching_id INT;
 BEGIN
-    SELECT id INTO matching_id FROM (
-        SELECT id FROM "order" WHERE
+    IF p_order_side = 'buy' THEN
+        SELECT id INTO matching_id FROM "order"
+        WHERE
             iid = p_iid
             AND status = 'open'
-            AND limit_price = p_limit_price
-            AND sign(quantity) = -p_quantity_sign
+            AND side = 'sell'
+            AND limit_price <= p_limit_price
             AND wid != p_exclude_wid
-        ORDER BY created_at ASC
-    ) AS sorted_orders LIMIT 1;
+        ORDER BY limit_price ASC, created_at ASC
+        LIMIT 1;
+    ELSE
+        SELECT id INTO matching_id FROM (
+            SELECT id FROM "order" WHERE
+                iid = p_iid
+                AND status = 'open'
+                AND side = 'buy'
+                AND limit_price >= p_limit_price
+                AND wid != p_exclude_wid
+            ORDER BY limit_price DESC, created_at ASC
+        ) AS sorted_orders LIMIT 1;
+    END IF;
 
     RETURN matching_id;
 END;
@@ -41,7 +53,7 @@ DECLARE
 BEGIN
     transaction_quantity := LEAST(ABS(p_new_order.quantity), ABS(p_matched_order.quantity));
 
-    IF p_new_order.quantity > 0 THEN
+    IF p_new_order.side = 'buy' THEN
         buyer_wid := p_new_order.wid; buyer_oid := p_new_order.id;
         seller_wid := p_matched_order.wid; seller_oid := p_matched_order.id;
     ELSE
@@ -49,8 +61,8 @@ BEGIN
         buyer_wid := p_matched_order.wid; buyer_oid := p_matched_order.id;
     END IF;
 
-    matched_order_remaining_qty := ABS(p_matched_order.quantity) - transaction_quantity;
-    new_order_remaining_qty := ABS(p_new_order.quantity) - transaction_quantity;
+    matched_order_remaining_qty := p_matched_order.quantity - transaction_quantity;
+    new_order_remaining_qty := p_new_order.quantity - transaction_quantity;
 
     UPDATE "order" SET status = 'filled' WHERE id = p_matched_order.id;
     UPDATE "order" SET status = 'filled' WHERE id = p_new_order.id;
@@ -79,7 +91,7 @@ DECLARE
     matched_order_id INT;
     matched_order RECORD;
 BEGIN
-    matched_order_id := order_id_with_the_same_price(NEW.iid, NEW.limit_price, sign(NEW.quantity), NEW.wid);
+    matched_order_id := order_id_with_the_same_price(NEW.iid, NEW.limit_price, NEW.side, NEW.wid);
     IF matched_order_id IS NULL THEN
         RETURN NULL;
     END IF;
