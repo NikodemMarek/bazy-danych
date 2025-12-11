@@ -41,6 +41,7 @@ CREATE OR REPLACE FUNCTION execute_trade(
 RETURNS DECIMAL AS $$
 DECLARE
     v_fee_percentage DECIMAL := 0.01;
+    trade_price DECIMAL;
 
     transaction_quantity DECIMAL;
     buyer_wid INT;
@@ -51,7 +52,7 @@ DECLARE
     matched_order_remaining_qty DECIMAL;
     new_order_remaining_qty DECIMAL;
 BEGIN
-    transaction_quantity := LEAST(ABS(p_new_order.quantity), ABS(p_matched_order.quantity));
+    transaction_quantity := LEAST(p_new_order.quantity, p_matched_order.quantity);
 
     IF p_new_order.side = 'buy' THEN
         buyer_wid := p_new_order.wid; buyer_oid := p_new_order.id;
@@ -63,23 +64,26 @@ BEGIN
 
     matched_order_remaining_qty := p_matched_order.quantity - transaction_quantity;
     new_order_remaining_qty := p_new_order.quantity - transaction_quantity;
+    trade_price := p_matched_order.limit_price;
 
-    UPDATE "order" SET status = 'filled' WHERE id = p_matched_order.id;
-    UPDATE "order" SET status = 'filled' WHERE id = p_new_order.id;
+    UPDATE "order" SET status = 'filled', closed_at = CURRENT_TIMESTAMP WHERE id = p_matched_order.id;
+    UPDATE "order" SET status = 'filled', closed_at = CURRENT_TIMESTAMP WHERE id = p_new_order.id;
 
     IF matched_order_remaining_qty > 0 OR new_order_remaining_qty > 0 THEN
         IF matched_order_remaining_qty > 0 THEN
-            INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES
-            (p_matched_order.wid, p_matched_order.iid, matched_order_remaining_qty * sign(p_matched_order.quantity), p_matched_order.limit_price);
+            INSERT INTO "order" (wid, iid, quantity, limit_price, side) VALUES
+            (p_matched_order.wid, p_matched_order.iid, matched_order_remaining_qty, p_matched_order.limit_price, p_matched_order.side);
         ELSE
-            INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES
-            (p_new_order.wid, p_new_order.iid, new_order_remaining_qty * sign(p_new_order.quantity), p_new_order.limit_price);
+            INSERT INTO "order" (wid, iid, quantity, limit_price, side) VALUES
+            (p_new_order.wid, p_new_order.iid, new_order_remaining_qty, p_new_order.limit_price, p_new_order.side);
         END IF;
     END IF;
 
-    INSERT INTO "transaction" (oid, wid, iid, quantity, price, fee) VALUES
-    (buyer_oid, buyer_oid, p_matched_order.iid, transaction_quantity, p_matched_order.limit_price, transaction_quantity * p_matched_order.limit_price * v_fee_percentage),
-    (seller_oid, seller_oid, p_new_order.iid, -transaction_quantity, p_new_order.limit_price, transaction_quantity * p_new_order.limit_price * v_fee_percentage);
+    INSERT INTO "transaction" (oid, wid, iid, side, quantity, price, fee) VALUES
+    (buyer_oid, buyer_wid, p_matched_order.iid, 'buy', transaction_quantity, trade_price, transaction_quantity * trade_price * v_fee_percentage);
+
+    INSERT INTO "transaction" (oid, wid, iid, side, quantity, price, fee) VALUES
+    (seller_oid, seller_wid, p_new_order.iid, 'sell', transaction_quantity, trade_price, transaction_quantity * trade_price * v_fee_percentage);
 
     RETURN NULL;
 END;

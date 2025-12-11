@@ -54,12 +54,12 @@ INSERT INTO portfolio (wid, iid, quantity) VALUES
 
 
 -- execute to test automatic order fufillment:
--- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (1, 1, -10.0, 110.00);
--- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (2, 1, 5.0, 110.00);
--- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (2, 1, 8.0, 110.00);
--- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (1, 1, -2.0, 110.00);
--- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (1, 1, -2.0, 110.00);
--- INSERT INTO "order" (wid, iid, quantity, limit_price) VALUES (2, 1, 1.0, 110.00);
+-- INSERT INTO "order" (wid, iid, quantity, limit_price, side) VALUES (1, 1, 10.0, 110.00, 'sell');
+-- INSERT INTO "order" (wid, iid, quantity, limit_price, side) VALUES (2, 1, 5.0, 110.00, 'buy');
+-- INSERT INTO "order" (wid, iid, quantity, limit_price, side) VALUES (2, 1, 8.0, 110.00, 'buy');
+-- INSERT INTO "order" (wid, iid, quantity, limit_price, side) VALUES (1, 1, 2.0, 110.00, 'sell');
+-- INSERT INTO "order" (wid, iid, quantity, limit_price, side) VALUES (1, 1, 2.0, 110.00, 'sell');
+-- INSERT INTO "order" (wid, iid, quantity, limit_price, side) VALUES (2, 1, 1.0, 110.00, 'buy');
 -- should result in:
 --  id | wid | iid |   quantity   | limit_price | status |          created_at           | closed_at
 -- ----+-----+-----+--------------+-------------+--------+-------------------------------+-----------
@@ -75,7 +75,7 @@ INSERT INTO portfolio (wid, iid, quantity) VALUES
 --  10 |   2 |   1 |   1.00000000 |      110.00 | filled | 2025-12-01 12:00:00.900000+00 |
 -- (10 rows)
 
-INSERT INTO "order" (wid, iid, t_type, quantity, limit_price, status, created_at, closed_at) VALUES
+INSERT INTO "order" (wid, iid, side, quantity, limit_price, status, created_at, closed_at) VALUES
 -- ZREALIZOWANE (To one zbudowały obecne portfolio)
 (1, 1, 'buy', 50.0, 105.00, 'filled', NOW() - INTERVAL '11 days', NOW() - INTERVAL '10 days'), -- Kupił CDR (PLN)
 (1, 2, 'buy', 100.0, 55.50, 'filled', NOW() - INTERVAL '6 days', NOW() - INTERVAL '5 days'),   -- Kupił PKO (PLN)
@@ -91,7 +91,7 @@ INSERT INTO "order" (wid, iid, t_type, quantity, limit_price, status, created_at
 -- ANULOWANE (Historia niedoszłych transakcji)
 (9, 1, 'buy', 100.0, 90.00, 'cancelled', NOW() - INTERVAL '1 month', NOW() - INTERVAL '29 days'); -- Chciał kupić CDR bardzo tanio, ale zrezygnował
 
-INSERT INTO "transaction" (oid, wid, iid, t_type, quantity, price, fee, made_at) VALUES
+INSERT INTO "transaction" (oid, wid, iid, side, quantity, price, fee, made_at) VALUES
 (5, 1, 1, 'buy', 50.0, 105.00, 2.50, NOW() - INTERVAL '10 days'),  -- Kupno CDR
 (6, 1, 2, 'buy', 100.0, 55.50, 3.00, NOW() - INTERVAL '5 days'),   -- Kupno PKO
 (7, 2, 3, 'buy', 10.0, 170.00, 1.50, NOW() - INTERVAL '20 days'),  -- Kupno AAPL

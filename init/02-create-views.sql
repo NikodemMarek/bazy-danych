@@ -42,7 +42,7 @@ w.uid as user_id,
 w.id as wallet_id,
 o.id as order_id,
 i.ticker,
-o.t_type as transaction_type,
+o.side as transaction_type,
 o.quantity,
 o.limit_price,
 o.created_at
