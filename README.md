@@ -20,3 +20,9 @@ server: `db`
 username: `postgres`  
 password: `postgres`  
 database: `stockmarket`
+
+---
+
+## Schemat bazy
+
+<img width="1065" height="578" alt="image" src="https://github.com/user-attachments/assets/a8c32110-352c-4179-b81b-a5cfcdaa244b" />
