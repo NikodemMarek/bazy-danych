@@ -31,6 +31,8 @@ Schemat bazy danych został zaprojektowany w celu spójnego i logicznego przecho
 
 Spójność danych jest zapewniona przez system kluczy głównych i obcych, które poprawnie odwzorowują zależności między tabelami (np. `wallet` jest powiązany z `user`, a `transaction` z `order`).
 
+![schema](./schema.png)
+
 ## 3. Widoki Aplikacyjne
 
 W celu uproszczenia zapytań i ułatwienia dostępu do zagregowanych danych, zdefiniowano następujące widoki:
@@ -53,6 +55,42 @@ Dwa kluczowe procesy biznesowe zostały zautomatyzowane przy użyciu funkcji i w
 
 *   **Cel:** Zapewnienie, że stan środków pieniężnych w portfelu użytkownika jest automatycznie korygowany po każdej transakcji.
 *   **Implementacja:** Wyzwalacz `trg_update_wallet_balance_on_transaction_insert`, aktywowany po każdej nowej transakcji, wywołuje funkcję `update_wallet_balance()`. Funkcja ta odpowiednio obciąża (przy kupnie) lub zasila (przy sprzedaży) saldo portfela, uwzględniając wartość transakcji oraz naliczoną prowizję.
+
+### c) Procedura „distribute_dividend”
+
+*   **Cel:** Automatyzacja procesu wypłaty dywidendy.
+*   **Implementacja:** Na podstawie tickera instrumentu (`p_ticker`) identyfikuje wszystkich posiadaczy akcji i wpłaca do ich portfela należność proporcjonalną do liczby posiadanych udziałów.
+    *   **Zaleta:** Gwarantuje spójność danych – operacja jest atomowa, co oznacza, że albo wszyscy uprawnieni otrzymają środki, albo nikt (w przypadku błędu).
+
+Przykład działania:
+
+![Procedura „distribute_dividend”](./procedura-distribute-divident.png)
+
+### d) Procedura „archive_prices”
+
+*   **Cel:** Zmniejszenie zajmowanego miejsca przez tabelę `price_history` poprzez przeniesienie historycznych danych cenowych (ceny w interwale ‘1m’ i ‘1h’) do osobnej tabeli (`price_history_archive`).
+*   **Implementacja:** Procedura przenosi największą ilość danych historycznych (ceny w interwale ‘1m’ i ‘1h’) do osobnej tabeli.
+    *   **Korzyści:**
+        *   **Szybsza kopia zapasowa tabeli operacyjnej:** Mniejszy rozmiar głównej tabeli przyspiesza operacje tworzenia kopii zapasowych.
+        *   **Wydajność operacyjna:** Mniejszy rozmiar tabeli `price_history` sprawia, że operacje INSERT są szybsze, ponieważ indeksy łatwiej mieszczą się w pamięci RAM.
+        *   **Optymalizacja przechowywania:** W zaawansowanych systemach tabelę `price_history_archive` można przenieść na wolniejsze i tańsze dyski (HDD), podczas gdy tabela `price_history` pracuje na najszybszych dyskach NVMe.
+        *   **Izolacja analityki od operacji:** Analityk uruchamia ciężkie zapytania (np. "oblicz średnią kroczącą z ostatnich 5 lat") na tabeli archiwalnej, co nie blokuje i nie spowalnia mechanizmu kojarzenia zleceń (`order matching`), który operuje na tabeli głównej.
+
+Przy użyciu widoku `v_price_history` silnik PostgreSQL sam wybiera, z której tabeli odczytuje dane, np.:
+
+```sql
+SELECT … WHERE ph.timestamp > NOW() - INTERVAL ‘1 day’ * 30
+```
+(weźmie dane z tabeli `price_history`, bo one tam jeszcze są.)
+
+```sql
+SELECT … WHERE ph.timestamp < NOW() – INTERVAL ‘1 day’ *30
+```
+(weźmie dane z tabeli `price_history_archive`, bo te dane już zostały usunięte z głównej tabeli.)
+
+Przykład działania:
+
+![Procedura „archive_prices”](./procedura-archive-prices.png)
 
 ## 5. Zapewnienie Jakości i Spójności Danych
 
