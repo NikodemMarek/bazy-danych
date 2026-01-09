@@ -12,7 +12,7 @@ GRANT SELECT, INSERT, UPDATE ON TABLE "user", "wallet", "portfolio", "order" TO 
 -- Special case "transaction" - application can only read from it and add new records
 GRANT SELECT, INSERT ON TABLE "transaction" TO group_application;
 -- Read-only access to tables
-GRANT SELECT ON TABLE "instrument", "instrument_type", "price_history" TO group_application;
+GRANT SELECT ON TABLE "instrument", "instrument_type", "price_history", "price_history_archive" TO group_application;
 -- Serial and auto-increment has to work
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group_application;
 -- Analyst can only read from all tables

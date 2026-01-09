@@ -157,3 +157,5 @@ CREATE TABLE IF NOT EXISTS price_history(
         FOREIGN KEY(iid)
         REFERENCES instrument(id)
 );
+
+CREATE TABLE IF NOT EXISTS price_history_archive (LIKE price_history INCLUDING ALL);

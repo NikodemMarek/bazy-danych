@@ -54,12 +54,10 @@ WHERE o.status = 'open';
 CREATE OR REPLACE VIEW v_price_history AS
 SELECT
 i.ticker,
-ph.interval,
-ph.timestamp,
-ph.open,
-ph.close,
-ph.high,
-ph.low,
-ph.volume
+ph.*
 FROM price_history ph
-JOIN instrument i ON ph.iid = i.id;
+JOIN instrument i ON ph.iid = i.id
+UNION ALL
+SELECT i.ticker, pha.*
+FROM price_history_archive pha
+JOIN instrument i ON pha.iid = i.id;
